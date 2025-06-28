@@ -8,6 +8,7 @@ import connectDB from "./config/db";
 import authRoutes from "./routes/authRoutes";
 import bookRoutes from "./routes/bookRoutes";
 import reservationRoutes from "./routes/reservationRoutes";
+import { cleanExpiredReservations } from "./cronJobs/cleanExpiredReservations";
 
 dotenv.config();
 
@@ -32,6 +33,10 @@ connectDB();
 app.use("/api/auth", authRoutes);
 app.use("/api/books", bookRoutes);
 app.use("/api/reservations", reservationRoutes);
+
+
+// Start Cron Job
+cleanExpiredReservations();
 
 // ✅ Start server
 const PORT = process.env.PORT || 5000;
