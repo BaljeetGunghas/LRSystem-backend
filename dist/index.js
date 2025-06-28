@@ -12,6 +12,7 @@ const db_1 = __importDefault(require("./config/db"));
 const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const bookRoutes_1 = __importDefault(require("./routes/bookRoutes"));
 const reservationRoutes_1 = __importDefault(require("./routes/reservationRoutes"));
+const cleanExpiredReservations_1 = require("./cronJobs/cleanExpiredReservations");
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 // ✅ CORS setup
@@ -30,6 +31,8 @@ app.use((0, cookie_parser_1.default)());
 app.use("/api/auth", authRoutes_1.default);
 app.use("/api/books", bookRoutes_1.default);
 app.use("/api/reservations", reservationRoutes_1.default);
+// Start Cron Job
+(0, cleanExpiredReservations_1.cleanExpiredReservations)();
 // ✅ Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
