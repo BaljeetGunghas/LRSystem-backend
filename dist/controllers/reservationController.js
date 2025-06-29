@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.cancelReservation = exports.getUserReservations = exports.reserveBook = void 0;
 const Reservation_1 = __importDefault(require("../models/Reservation"));
 const Book_1 = __importDefault(require("../models/Book"));
+const mongoose_1 = require("mongoose");
 // Reserve a book
 const reserveBook = async (req, res) => {
     try {
@@ -39,12 +40,27 @@ const reserveBook = async (req, res) => {
             });
             return;
         }
+        console.log(book.reservedBy);
+        console.log(book.reservedBy.map(id => id.toString()).includes(req.userId));
+        const userIdStr = String(req.userId); // Ensure it's string
+        if (book.reservedBy &&
+            book.reservedBy.map((id) => id.toString()).includes(userIdStr)) {
+            res.status(400).json({
+                output: 0,
+                status: 400,
+                jsonResponse: null,
+                message: "You have already reserved this book (via reservedBy).",
+            });
+            return;
+        }
         const reservation = await Reservation_1.default.create({
             user: req.userId,
             book: bookId,
-            expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+            expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
         });
+        // 🟡 Mark book unavailable and push userId to reservedBy
         book.available = false;
+        book.reservedBy.push(new mongoose_1.Types.ObjectId(req.userId));
         await book.save();
         res.status(201).json({
             output: 1,
@@ -54,6 +70,7 @@ const reserveBook = async (req, res) => {
         });
     }
     catch (error) {
+        console.error("Reservation Error:", error);
         res.status(500).json({
             output: 0,
             status: 500,
