@@ -13,12 +13,25 @@ const authRoutes_1 = __importDefault(require("./routes/authRoutes"));
 const bookRoutes_1 = __importDefault(require("./routes/bookRoutes"));
 const reservationRoutes_1 = __importDefault(require("./routes/reservationRoutes"));
 const cleanExpiredReservations_1 = require("./cronJobs/cleanExpiredReservations");
+const path_1 = __importDefault(require("path"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
-// ✅ CORS setup
+const allowedOrigins = [
+    'https://liberary.netlify.app', // ✅ no trailing slash
+    /^http:\/\/localhost:\d+$/ // ✅ RegExp for all localhost ports
+];
 app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    credentials: true, // Allow cookies & auth headers
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.some(o => o instanceof RegExp ? o.test(origin) : o === origin)) {
+            callback(null, true);
+        }
+        else {
+            console.error(`Blocked by CORS: ${origin}`);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true, // ✅ enable cookies and auth headers
 }));
 // ✅ Middleware
 app.use(express_1.default.json());
@@ -26,8 +39,11 @@ app.use(body_parser_1.default.json({ limit: "10mb" }));
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
 // ✅ Database connection
-(0, db_1.default)();
+(0, db_1.default)().catch((err) => console.error("DB Connection Error:", err));
 // ✅ Routes
+app.get('/', (req, res) => {
+    res.sendFile(path_1.default.join(__dirname, 'public', 'index.html'));
+});
 app.use("/api/auth", authRoutes_1.default);
 app.use("/api/books", bookRoutes_1.default);
 app.use("/api/reservations", reservationRoutes_1.default);
