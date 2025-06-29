@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Reservation from "../models/Reservation";
 import Book from "../models/Book";
 import { AuthRequest } from "../middleware/authMiddleware";
+import { Types } from "mongoose";
 
 // Reserve a book
 export const reserveBook = async (req: AuthRequest, res: Response): Promise<void> => {
@@ -30,7 +31,8 @@ export const reserveBook = async (req: AuthRequest, res: Response): Promise<void
     }
 
     const book = await Book.findById(bookId);
-    if (!book || book.available ===false) {
+
+    if (!book || book.available === false) {
       res.status(400).json({
         output: 0,
         status: 400,
@@ -40,13 +42,34 @@ export const reserveBook = async (req: AuthRequest, res: Response): Promise<void
       return;
     }
 
+    console.log(book.reservedBy);
+    console.log(book.reservedBy.map(id => id.toString()).includes(req.userId));
+
+    const userIdStr = String(req.userId); // Ensure it's string
+
+    if (
+      book.reservedBy &&
+      book.reservedBy.map((id) => id.toString()).includes(userIdStr)
+    ) {
+      res.status(400).json({
+        output: 0,
+        status: 400,
+        jsonResponse: null,
+        message: "You have already reserved this book (via reservedBy).",
+      });
+      return;
+    }
+
     const reservation = await Reservation.create({
       user: req.userId,
       book: bookId,
-      expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days
     });
 
+    // 🟡 Mark book unavailable and push userId to reservedBy
     book.available = false;
+
+    book.reservedBy.push(new Types.ObjectId(req.userId));
     await book.save();
 
     res.status(201).json({
@@ -56,6 +79,7 @@ export const reserveBook = async (req: AuthRequest, res: Response): Promise<void
       message: "Book reserved successfully",
     });
   } catch (error) {
+    console.error("Reservation Error:", error);
     res.status(500).json({
       output: 0,
       status: 500,
