@@ -16,14 +16,14 @@ dotenv.config();
 const app: Application = express();
 
 const allowedOrigins = [
-  'https://liberary.netlify.app/',
-  /^http:\/\/localhost:\d+$/
+  'https://liberary.netlify.app', // ✅ no trailing slash
+  /^http:\/\/localhost:\d+$/ // ✅ RegExp for all localhost ports
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.some((o) => o instanceof RegExp ? o.test(origin) : o === origin)) {
+      if (!origin || allowedOrigins.some(o => o instanceof RegExp ? o.test(origin) : o === origin)) {
         callback(null, true);
       } else {
         console.error(`Blocked by CORS: ${origin}`);
@@ -31,7 +31,7 @@ app.use(
       }
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    credentials: true, // ✅ Allow cookies/auth headers
+    credentials: true, // ✅ enable cookies and auth headers
   })
 );
 
